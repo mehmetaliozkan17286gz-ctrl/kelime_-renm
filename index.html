@@ -1,0 +1,895 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Kelime Kartı</title>
+    <style>
+        /* =========================
+           Tema ve global stiller
+           ========================= */
+        :root{
+            --bg:#0b1020;
+            --surface:#121734;
+            --card:#161b3f;
+            --text:#f1f3f7;
+            --muted:#a0a7bd;
+            --accent:#7e6cff;     /* mor */
+            --accent2:#53d98a;    /* yeşil */
+            --accent3:#ffb764;    /* turuncu */
+            --danger:#ff6b6b;
+            --shadow:rgba(0,0,0,0.45);
+        }
+        *{box-sizing:border-box}
+        html,body{
+            margin:0; padding:0; min-height:100%;
+            background: radial-gradient(900px 500px at 20% 0%, #151a3b 0%, #0b1020 60%, #080b16 100%);
+            color:var(--text);
+            font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+        }
+        .app{
+            max-width:980px; margin:0 auto; padding:20px;
+            display:flex; flex-direction:column; gap:16px;
+        }
+
+        /* =========================
+           Splash / Başlık animasyonu
+           ========================= */
+        .splash{
+            height:220px; display:flex; align-items:center; justify-content:center;
+        }
+        .brand{
+            display:inline-flex; gap:.08em; font-weight:900;
+            font-size: clamp(42px, 7.5vw, 92px); letter-spacing:.02em;
+        }
+        .brand span{ display:inline-block; opacity:0; transform:translateY(22px) scale(.96); filter:blur(6px) }
+
+        /* Kelime Kartı yazısı özel sıralı animasyon:
+           K - e - l - i - m - e -  boşluk - K - a - r - t - ı
+           'ı' için önce nokta aşağıda, sonra 'i' animasyonu (şekil olarak canlandırma) */
+        .k{ color:var(--accent); text-shadow:0 12px 36px rgba(126,108,255,.45); animation: letterIn .7s .15s ease forwards }
+        .e{ color:#b79aff; animation: letterIn .6s .35s ease forwards }
+        .l{ color:#98caff; animation: letterIn .6s .55s ease forwards }
+        .i{ color:#8ef0a2; animation: letterIn .6s .75s ease forwards }
+        .m{ color:#ffd38f; animation: letterIn .6s .95s ease forwards }
+        .e2{ color:#53d98a; animation: letterIn .6s 1.15s ease forwards }
+        .space{ width:.4em; animation: fadeIn .4s 1.35s ease forwards }
+        .k2{ color:#ffb764; animation: letterIn .6s 1.45s ease forwards }
+        .a{ color:#9bd5ff; animation: letterIn .6s 1.65s ease forwards }
+        .r{ color:#b79aff; animation: letterIn .6s 1.85s ease forwards }
+        .t{ color:#8ef0a2; animation: letterIn .6s 2.05s ease forwards }
+        .i-dotwrap{
+            position:relative; display:inline-block; width:.6em;
+        }
+        .i-dot{
+            position:absolute; bottom:-0.35em; left:.22em;
+            width:.20em; height:.20em; border-radius:50%; background:var(--accent3);
+            opacity:0; transform:translateY(10px) scale(.6); filter:blur(6px);
+            box-shadow:0 6px 22px rgba(255,183,100,.45);
+            animation: dotIn .6s 2.15s ease forwards;
+        }
+        .ii{
+            opacity:0; transform:translateY(18px) scale(.92); filter:blur(6px);
+            color:var(--accent3); text-shadow:0 10px 24px rgba(255,183,100,.35);
+            animation: letterIn .7s 2.35s ease forwards;
+        }
+
+        @keyframes letterIn{
+            0%{opacity:0; transform:translateY(22px) scale(.96); filter:blur(6px)}
+            100%{opacity:1; transform:translateY(0) scale(1); filter:blur(0)}
+        }
+        @keyframes fadeIn{
+            0%{opacity:0}
+            100%{opacity:1}
+        }
+        @keyframes dotIn{
+            0%{opacity:0; transform:translateY(10px) scale(.6); filter:blur(6px)}
+            100%{opacity:1; transform:translateY(0) scale(1); filter:blur(0)}
+        }
+
+        /* =========================
+           Üst çubuk ve butonlar
+           ========================= */
+        .topbar{
+            display:grid; grid-template-columns: 1fr auto auto; gap:12px; align-items:center;
+        }
+        .mode-pill{
+            background: rgba(255,255,255,.04);
+            border:1px solid rgba(255,255,255,.10);
+            border-radius:999px; padding:8px 14px;
+            display:inline-flex; gap:10px; align-items:center;
+        }
+        .mode-pill span{ font-weight:600; color:var(--muted) }
+        .badge{
+            background:var(--accent); color:white; font-size:12px;
+            border-radius:999px; padding:4px 10px; box-shadow:0 6px 18px rgba(126,108,255,.25);
+        }
+        .btn{
+            background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02));
+            color:var(--text); border:1px solid rgba(255,255,255,.14);
+            border-radius:12px; padding:10px 14px; font-weight:600; cursor:pointer;
+            transition: transform 120ms ease, box-shadow 120ms ease, border-color 120ms ease;
+            box-shadow:0 6px 20px var(--shadow);
+        }
+        .btn:hover{ transform: translateY(-2px) }
+        .btn:active{ transform: translateY(0) scale(.98) }
+        .btn.primary{ background: linear-gradient(180deg, #7e6cff, #6749ff); border-color:#5d3fff }
+        .btn.warn{ background: linear-gradient(180deg, #ffd166, #ffb764); border-color:#ffb05b; color:#101318 }
+        .btn.danger{ background: linear-gradient(180deg, #ff7b7b, #ff6b6b); border-color:#ff5b5b }
+        .btn.ghost{ background: rgba(255,255,255,.04) }
+
+        /* =========================
+           İlerleme
+           ========================= */
+        .progress{
+            display:grid; grid-template-columns: 1fr auto; align-items:center; gap:10px;
+        }
+        .bar-wrap{
+            background: rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.12);
+            border-radius:10px; overflow:hidden; height:10px;
+        }
+        .bar{ height:100%; width:0%; background: linear-gradient(90deg, #53d98a, #7e6cff); transition: width 400ms ease }
+        .bar-text{ font-size:14px; color:var(--muted); font-weight:600 }
+
+        /* =========================
+           Kart ve animasyonları
+           ========================= */
+        .card-wrap{ perspective:1200px; display:grid; grid-template-columns:1fr; gap:16px; justify-items:center }
+        .card{
+            width:min(640px, 94vw); min-height:240px;
+            background: linear-gradient(180deg, #1a1e3d, #11162e);
+            border:1px solid rgba(255,255,255,.14); border-radius:18px;
+            box-shadow:0 24px 60px rgba(0,0,0,.35), inset 0 -10px 50px rgba(255,255,255,.03);
+            position:relative; transform-style:preserve-3d;
+            transition: transform 600ms cubic-bezier(.19,.75,.23,1);
+        }
+        .card.flipped{ transform: rotateY(180deg) }
+        .face{
+            position:absolute; inset:0; padding:24px;
+            display:grid; align-content:center; justify-items:center; gap:18px;
+            backface-visibility:hidden;
+        }
+        .back{ transform: rotateY(180deg) }
+        .word{ font-size: clamp(28px, 6vw, 48px); font-weight:800; letter-spacing:1px; text-align:center }
+        .sub{ font-size:16px; color:var(--muted); text-align:center }
+        .actions{ display:flex; gap:10px; flex-wrap:wrap; justify-content:center }
+
+        /* =========================
+           Navigasyon ve depo paneli
+           ========================= */
+        .nav{ display:grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap:10px; width:min(640px, 94vw); margin:0 auto }
+        .depot{ background: rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.12); border-radius:16px; padding:14px }
+        .list{ display:grid; grid-template-columns: repeat(auto-fill, minmax(160px,1fr)); gap:10px; margin-top:8px }
+        .chip{
+            background:#171b3f; border:1px solid rgba(255,255,255,.14); border-radius:12px;
+            padding:8px 10px; display:grid; gap:4px; box-shadow: inset 0 -6px 22px rgba(255,255,255,.03);
+        }
+        .chip .en{ font-weight:700 }
+        .chip .tr{ color:var(--muted); font-size:14px }
+
+        /* =========================
+           Ayarlar modalı
+           ========================= */
+        .backdrop{
+            position:fixed; inset:0; background:rgba(0,0,0,.5); opacity:0; pointer-events:none; transition: opacity 200ms ease;
+        }
+        .backdrop.show{ opacity:1; pointer-events:auto }
+        .modal{
+            position:fixed; left:50%; top:50%; transform: translate(-50%, -50%) scale(.98);
+            background:#121734; border:1px solid rgba(255,255,255,.14); border-radius:14px;
+            width:min(520px, 92vw); padding:18px; box-shadow:0 30px 80px rgba(0,0,0,.45);
+            opacity:0; pointer-events:none; transition: opacity 200ms ease, transform 200ms ease;
+        }
+        .modal.show{ opacity:1; pointer-events:auto; transform: translate(-50%, -50%) scale(1) }
+        .modal h3{ margin:10px 0 6px; font-size:20px }
+        .row{ display:flex; align-items:center; justify-content:space-between; gap:10px; padding:10px 0; border-bottom:1px dashed rgba(255,255,255,.08) }
+        .row:last-child{ border-bottom:none }
+        .switch{
+            appearance:none; width:48px; height:28px; border-radius:999px; background:rgba(255,255,255,.12);
+            position:relative; transition: background 200ms ease; border:1px solid rgba(255,255,255,.2); cursor:pointer;
+        }
+        .switch::after{
+            content:""; position:absolute; top:3px; left:3px; width:22px; height:22px; border-radius:50%; background:white;
+            transition: transform 200ms ease; box-shadow:0 4px 12px rgba(0,0,0,.25);
+        }
+        .switch:checked{ background:#53d98a }
+        .switch:checked::after{ transform: translateX(20px) }
+
+        /* =========================
+           Responsive
+           ========================= */
+        @media (max-width:520px){
+            .topbar{ grid-template-columns: 1fr auto; grid-auto-flow: row }
+            .nav{ grid-template-columns: 1fr }
+        }
+    </style>
+</head>
+<body>
+<div class="app">
+    <!-- Splash -->
+    <div class="splash" aria-hidden="true">
+        <div class="brand" role="img" aria-label="Kelime Kartı ile Kelime Öğren">
+            <span class="k">K</span>
+            <span class="e">e</span>
+            <span class="l">l</span>
+            <span class="i">i</span>
+            <span class="m">m</span>
+            <span class="e2">e</span>
+            <span class="space"> </span>
+            <span class="k2">K</span>
+            <span class="a">a</span>
+            <span class="r">r</span>
+            <span class="t">t</span>
+            <span class="i-dotwrap">
+          <span class="i-dot"></span>
+          <span class="ii">ı</span>
+        </span>
+        </div>
+    </div>
+
+    <!-- Üst çubuk -->
+    <div class="topbar">
+        <div class="mode-pill">
+            <span id="modeLabel">Öğrenme modu</span>
+            <span class="badge" id="badgeCount">Depo: 0</span>
+        </div>
+        <button class="btn ghost" id="settingsBtn">Ayarlar</button>
+        <button class="btn primary" id="playBtn" title="Sesi çal">🔊 Dinle</button>
+    </div>
+
+    <!-- İlerleme -->
+    <div class="progress">
+        <div class="bar-wrap"><div class="bar" id="progressBar"></div></div>
+        <div class="bar-text" id="progressText">0 / 300</div>
+    </div>
+
+    <!-- Kart -->
+    <div class="card-wrap">
+        <div class="card" id="card" aria-live="polite">
+            <div class="face front">
+                <div class="word" id="wordEn">...</div>
+                <div class="sub">Türkçe, kartı çevirince görünür</div>
+                <div class="actions">
+                    <button class="btn" id="flipBtn" title="Çevir">🔄 Çevir</button>
+                    <button class="btn warn" id="depotBtn" title="Depoya ekle">📦 Depoya ekle</button>
+                    <button class="btn" id="masterBtn" title="Öğrendim">✅ Öğrendim</button>
+                </div>
+            </div>
+            <div class="face back">
+                <div class="word" id="wordTr">...</div>
+                <div class="sub">Türkçe karşılık</div>
+                <div class="actions">
+                    <button class="btn" id="flipBackBtn" title="Geri çevir">↩️ Geri</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Navigasyon -->
+    <div class="nav">
+        <button class="btn ghost" id="prevBtn">⬅️ Önceki</button>
+        <button class="btn" id="toggleModeBtn">🔁 Depo / Öğrenme</button>
+        <button class="btn ghost" id="nextBtn">Sonraki ➡️</button>
+    </div>
+
+    <!-- Depo paneli -->
+    <div class="depot" id="depotPanel" hidden>
+        <strong>Zor (depo) kelimeler:</strong>
+        <div class="list" id="depotList"></div>
+        <div style="margin-top:10px; display:flex; gap:8px; flex-wrap:wrap;">
+            <button class="btn" id="reviewDepotBtn">🎯 Sadece depodan çalış</button>
+            <button class="btn danger" id="clearDepotBtn">🗑️ Depoyu temizle</button>
+        </div>
+    </div>
+</div>
+
+<!-- Ayarlar Modal -->
+<div class="backdrop" id="backdrop"></div>
+<div class="modal" id="modal">
+    <h3>Basit ayarlar</h3>
+    <div class="row">
+        <div>Ses (İngilizce söylet)</div>
+        <input type="checkbox" class="switch" id="audioSwitch">
+    </div>
+    <div class="row">
+        <div>İlerlemeyi sıfırla (öğrenilenler ve depo)</div>
+        <button class="btn danger" id="resetBtn">Sıfırla</button>
+    </div>
+    <div class="row">
+        <div>Depo kelimelerini görüntüle</div>
+        <button class="btn" id="openDepotBtn">Depoyu aç</button>
+    </div>
+    <div style="margin-top:8px; display:flex; justify-content:flex-end;">
+        <button class="btn ghost" id="closeModalBtn">Kapat</button>
+    </div>
+</div>
+
+<script>
+    // ===============================
+    // 300 temel İngilizce kelime veri seti
+    // ===============================
+    const WORDS = [
+        // Meyveler (10)
+        { en: "apple", tr: "elma" },
+        { en: "orange", tr: "portakal" },
+        { en: "banana", tr: "muz" },
+        { en: "grape", tr: "üzüm" },
+        { en: "strawberry", tr: "çilek" },
+        { en: "watermelon", tr: "karpuz" },
+        { en: "lemon", tr: "limon" },
+        { en: "peach", tr: "şeftali" },
+        { en: "cherry", tr: "vişne" },
+        { en: "pear", tr: "armut" },
+
+        // Sebzeler (12)
+        { en: "tomato", tr: "domates" },
+        { en: "cucumber", tr: "salatalık" },
+        { en: "carrot", tr: "havuç" },
+        { en: "potato", tr: "patates" },
+        { en: "onion", tr: "soğan" },
+        { en: "garlic", tr: "sarımsak" },
+        { en: "pepper", tr: "biber" },
+        { en: "lettuce", tr: "marul" },
+        { en: "cabbage", tr: "lahana" },
+        { en: "corn", tr: "mısır" },
+        { en: "mushroom", tr: "mantar" },
+        { en: "spinach", tr: "ıspanak" },
+
+        // Hayvanlar (15)
+        { en: "cat", tr: "kedi" },
+        { en: "dog", tr: "köpek" },
+        { en: "bird", tr: "kuş" },
+        { en: "fish", tr: "balık" },
+        { en: "cow", tr: "inek" },
+        { en: "horse", tr: "at" },
+        { en: "sheep", tr: "koyun" },
+        { en: "goat", tr: "keçi" },
+        { en: "chicken", tr: "tavuk" },
+        { en: "duck", tr: "ördek" },
+        { en: "tiger", tr: "kaplan" },
+        { en: "lion", tr: "aslan" },
+        { en: "elephant", tr: "fil" },
+        { en: "bear", tr: "ayı" },
+        { en: "monkey", tr: "maymun" },
+
+        // Renkler (13)
+        { en: "red", tr: "kırmızı" },
+        { en: "blue", tr: "mavi" },
+        { en: "green", tr: "yeşil" },
+        { en: "yellow", tr: "sarı" },
+        { en: "orange", tr: "turuncu" },
+        { en: "purple", tr: "mor" },
+        { en: "pink", tr: "pembe" },
+        { en: "black", tr: "siyah" },
+        { en: "white", tr: "beyaz" },
+        { en: "gray", tr: "gri" },
+        { en: "brown", tr: "kahverengi" },
+        { en: "gold", tr: "altın" },
+        { en: "silver", tr: "gümüş" },
+
+        // Sayılar 1-20 (20)
+        { en: "one", tr: "bir" },
+        { en: "two", tr: "iki" },
+        { en: "three", tr: "üç" },
+        { en: "four", tr: "dört" },
+        { en: "five", tr: "beş" },
+        { en: "six", tr: "altı" },
+        { en: "seven", tr: "yedi" },
+        { en: "eight", tr: "sekiz" },
+        { en: "nine", tr: "dokuz" },
+        { en: "ten", tr: "on" },
+        { en: "eleven", tr: "on bir" },
+        { en: "twelve", tr: "on iki" },
+        { en: "thirteen", tr: "on üç" },
+        { en: "fourteen", tr: "on dört" },
+        { en: "fifteen", tr: "on beş" },
+        { en: "sixteen", tr: "on altı" },
+        { en: "seventeen", tr: "on yedi" },
+        { en: "eighteen", tr: "on sekiz" },
+        { en: "nineteen", tr: "on dokuz" },
+        { en: "twenty", tr: "yirmi" },
+
+        // Haftanın günleri (7)
+        { en: "Monday", tr: "Pazartesi" },
+        { en: "Tuesday", tr: "Salı" },
+        { en: "Wednesday", tr: "Çarşamba" },
+        { en: "Thursday", tr: "Perşembe" },
+        { en: "Friday", tr: "Cuma" },
+        { en: "Saturday", tr: "Cumartesi" },
+        { en: "Sunday", tr: "Pazar" },
+
+        // Aylar (12)
+        { en: "January", tr: "Ocak" },
+        { en: "February", tr: "Şubat" },
+        { en: "March", tr: "Mart" },
+        { en: "April", tr: "Nisan" },
+        { en: "May", tr: "Mayıs" },
+        { en: "June", tr: "Haziran" },
+        { en: "July", tr: "Temmuz" },
+        { en: "August", tr: "Ağustos" },
+        { en: "September", tr: "Eylül" },
+        { en: "October", tr: "Ekim" },
+        { en: "November", tr: "Kasım" },
+        { en: "December", tr: "Aralık" },
+
+        // Aile (17)
+        { en: "mother", tr: "anne" },
+        { en: "father", tr: "baba" },
+        { en: "parent", tr: "ebeveyn" },
+        { en: "sister", tr: "kız kardeş" },
+        { en: "brother", tr: "erkek kardeş" },
+        { en: "son", tr: "oğul" },
+        { en: "daughter", tr: "kız evlat" },
+        { en: "child", tr: "çocuk" },
+        { en: "baby", tr: "bebek" },
+        { en: "husband", tr: "koca" },
+        { en: "wife", tr: "eş" },
+        { en: "aunt", tr: "teyze" },
+        { en: "uncle", tr: "amca" },
+        { en: "cousin", tr: "kuzen" },
+        { en: "grandmother", tr: "büyük anne" },
+        { en: "grandfather", tr: "büyük baba" },
+        { en: "family", tr: "aile" },
+
+        // Vücut (20)
+        { en: "head", tr: "baş" },
+        { en: "face", tr: "yüz" },
+        { en: "hair", tr: "saç" },
+        { en: "eye", tr: "göz" },
+        { en: "ear", tr: "kulak" },
+        { en: "nose", tr: "burun" },
+        { en: "mouth", tr: "ağız" },
+        { en: "tooth", tr: "diş" },
+        { en: "tongue", tr: "dil" },
+        { en: "neck", tr: "boyun" },
+        { en: "shoulder", tr: "omuz" },
+        { en: "arm", tr: "kol" },
+        { en: "hand", tr: "el" },
+        { en: "finger", tr: "parmak" },
+        { en: "leg", tr: "bacak" },
+        { en: "knee", tr: "diz" },
+        { en: "foot", tr: "ayak" },
+        { en: "back", tr: "sırt" },
+        { en: "chest", tr: "göğüs" },
+        { en: "heart", tr: "kalp" },
+
+        // Fiiller (50)
+        { en: "be", tr: "olmak" },
+        { en: "have", tr: "sahip olmak" },
+        { en: "do", tr: "yapmak" },
+        { en: "go", tr: "gitmek" },
+        { en: "come", tr: "gelmek" },
+        { en: "see", tr: "görmek" },
+        { en: "look", tr: "bakmak" },
+        { en: "watch", tr: "izlemek" },
+        { en: "know", tr: "bilmek" },
+        { en: "think", tr: "düşünmek" },
+        { en: "want", tr: "istemek" },
+        { en: "need", tr: "ihtiyaç duymak" },
+        { en: "like", tr: "beğenmek" },
+        { en: "love", tr: "sevmek" },
+        { en: "hate", tr: "nefret etmek" },
+        { en: "make", tr: "yapmak" },
+        { en: "tell", tr: "söylemek" },
+        { en: "say", tr: "demek" },
+        { en: "speak", tr: "konuşmak" },
+        { en: "read", tr: "okumak" },
+        { en: "write", tr: "yazmak" },
+        { en: "listen", tr: "dinlemek" },
+        { en: "hear", tr: "duymak" },
+        { en: "eat", tr: "yemek" },
+        { en: "drink", tr: "içmek" },
+        { en: "sleep", tr: "uyumak" },
+        { en: "wake", tr: "uyanmak" },
+        { en: "play", tr: "oynamak" },
+        { en: "work", tr: "çalışmak" },
+        { en: "study", tr: "çalışmak" },
+        { en: "learn", tr: "öğrenmek" },
+        { en: "teach", tr: "öğretmek" },
+        { en: "help", tr: "yardım etmek" },
+        { en: "try", tr: "denemek" },
+        { en: "open", tr: "açmak" },
+        { en: "close", tr: "kapatmak" },
+        { en: "start", tr: "başlamak" },
+        { en: "finish", tr: "bitirmek" },
+        { en: "buy", tr: "satın almak" },
+        { en: "sell", tr: "satmak" },
+        { en: "pay", tr: "ödemek" },
+        { en: "wait", tr: "beklemek" },
+        { en: "move", tr: "taşımak" },
+        { en: "walk", tr: "yürümek" },
+        { en: "run", tr: "koşmak" },
+        { en: "swim", tr: "yüzmek" },
+        { en: "drive", tr: "sürmek" },
+        { en: "ride", tr: "binmek" },
+        { en: "call", tr: "aramak" },
+        { en: "live", tr: "yaşamak" },
+
+        // Yer ve nesneler (40)
+        { en: "house", tr: "ev" },
+        { en: "home", tr: "ev" },
+        { en: "room", tr: "oda" },
+        { en: "kitchen", tr: "mutfak" },
+        { en: "bathroom", tr: "banyo" },
+        { en: "school", tr: "okul" },
+        { en: "class", tr: "sınıf" },
+        { en: "teacher", tr: "öğretmen" },
+        { en: "student", tr: "öğrenci" },
+        { en: "book", tr: "kitap" },
+        { en: "notebook", tr: "defter" },
+        { en: "pen", tr: "kalem" },
+        { en: "pencil", tr: "kurşun kalem" },
+        { en: "paper", tr: "kağıt" },
+        { en: "bag", tr: "çanta" },
+        { en: "chair", tr: "sandalye" },
+        { en: "table", tr: "masa" },
+        { en: "bed", tr: "yatak" },
+        { en: "door", tr: "kapı" },
+        { en: "window", tr: "pencere" },
+        { en: "wall", tr: "duvar" },
+        { en: "floor", tr: "zemin" },
+        { en: "ceiling", tr: "tavan" },
+        { en: "garden", tr: "bahçe" },
+        { en: "park", tr: "park" },
+        { en: "street", tr: "sokak" },
+        { en: "road", tr: "yol" },
+        { en: "city", tr: "şehir" },
+        { en: "village", tr: "köy" },
+        { en: "country", tr: "ülke" },
+        { en: "store", tr: "mağaza" },
+        { en: "market", tr: "pazar" },
+        { en: "hospital", tr: "hastane" },
+        { en: "doctor", tr: "doktor" },
+        { en: "nurse", tr: "hemşire" },
+        { en: "bank", tr: "banka" },
+        { en: "money", tr: "para" },
+        { en: "restaurant", tr: "restoran" },
+        { en: "cafe", tr: "kafe" },
+        { en: "office", tr: "ofis" },
+        { en: "company", tr: "şirket" },
+
+        // Yiyecek-içecek (24)
+        { en: "bread", tr: "ekmek" },
+        { en: "rice", tr: "pirinç" },
+        { en: "pasta", tr: "makarna" },
+        { en: "meat", tr: "et" },
+        { en: "chicken", tr: "tavuk eti" },
+        { en: "beef", tr: "dana eti" },
+        { en: "fish", tr: "balık eti" },
+        { en: "egg", tr: "yumurta" },
+        { en: "cheese", tr: "peynir" },
+        { en: "milk", tr: "süt" },
+        { en: "yogurt", tr: "yoğurt" },
+        { en: "butter", tr: "tereyağı" },
+        { en: "oil", tr: "yağ" },
+        { en: "salt", tr: "tuz" },
+        { en: "sugar", tr: "şeker" },
+        { en: "honey", tr: "bal" },
+        { en: "soup", tr: "çorba" },
+        { en: "salad", tr: "salata" },
+        { en: "fruit", tr: "meyve" },
+        { en: "vegetable", tr: "sebze" },
+        { en: "tea", tr: "çay" },
+        { en: "coffee", tr: "kahve" },
+        { en: "water", tr: "su" },
+        { en: "juice", tr: "meyve suyu" },
+
+        // Sıfatlar (40)
+        { en: "big", tr: "büyük" },
+        { en: "small", tr: "küçük" },
+        { en: "long", tr: "uzun" },
+        { en: "short", tr: "kısa" },
+        { en: "tall", tr: "uzun boylu" },
+        { en: "young", tr: "genç" },
+        { en: "old", tr: "yaşlı" },
+        { en: "new", tr: "yeni" },
+        { en: "old (thing)", tr: "eski" },
+        { en: "good", tr: "iyi" },
+        { en: "bad", tr: "kötü" },
+        { en: "right", tr: "doğru" },
+        { en: "wrong", tr: "yanlış" },
+        { en: "easy", tr: "kolay" },
+        { en: "difficult", tr: "zor" },
+        { en: "hard", tr: "sert" },
+        { en: "soft", tr: "yumuşak" },
+        { en: "heavy", tr: "ağır" },
+        { en: "light", tr: "hafif" },
+        { en: "fast", tr: "hızlı" },
+        { en: "slow", tr: "yavaş" },
+        { en: "early", tr: "erken" },
+        { en: "late", tr: "geç" },
+        { en: "hot", tr: "sıcak" },
+        { en: "cold", tr: "soğuk" },
+        { en: "warm", tr: "ılık" },
+        { en: "cool", tr: "serin" },
+        { en: "clean", tr: "temiz" },
+        { en: "dirty", tr: "kirli" },
+        { en: "happy", tr: "mutlu" },
+        { en: "sad", tr: "üzgün" },
+        { en: "angry", tr: "kızgın" },
+        { en: "tired", tr: "yorgun" },
+        { en: "hungry", tr: "aç" },
+        { en: "thirsty", tr: "susamış" },
+        { en: "beautiful", tr: "güzel" },
+        { en: "ugly", tr: "çirkin" },
+        { en: "noisy", tr: "gürültülü" },
+        { en: "quiet", tr: "sessiz" },
+        { en: "safe", tr: "güvenli" },
+        { en: "dangerous", tr: "tehlikeli" },
+
+        // Zamir / Belirteçler (20) -> toplam 300
+        { en: "I", tr: "ben" },
+        { en: "you", tr: "sen" },
+        { en: "he", tr: "o (erkek)" },
+        { en: "she", tr: "o (kadın)" },
+        { en: "it", tr: "o (nesne)" },
+        { en: "we", tr: "biz" },
+        { en: "they", tr: "onlar" },
+        { en: "this", tr: "bu" },
+        { en: "that", tr: "şu" },
+        { en: "these", tr: "bunlar" },
+        { en: "my", tr: "benim" },
+        { en: "your", tr: "senin" },
+        { en: "his", tr: "onun (erkek)" },
+        { en: "her", tr: "onun (kadın)" },
+        { en: "our", tr: "bizim" },
+        { en: "their", tr: "onların" },
+        { en: "me", tr: "beni" },
+        { en: "us", tr: "bizi" },
+        { en: "them", tr: "onları" },
+        { en: "mine", tr: "benimki" },
+    ];
+
+    // ==========================
+    // Durum yönetimi (localStorage)
+    // ==========================
+    const LS_KEYS = {
+        idx: "kk_current_idx",
+        mastered: "kk_mastered",
+        depot: "kk_depot",
+        audio: "kk_audio_on",
+        mode: "kk_mode", // 'learn' | 'depot'
+    };
+    let currentIndex = parseInt(localStorage.getItem(LS_KEYS.idx) || "0", 10);
+    let masteredSet = new Set(JSON.parse(localStorage.getItem(LS_KEYS.mastered) || "[]"));
+    let depotSet = new Set(JSON.parse(localStorage.getItem(LS_KEYS.depot) || "[]"));
+    let audioOn = localStorage.getItem(LS_KEYS.audio) !== "false"; // varsayılan açık
+    let mode = localStorage.getItem(LS_KEYS.mode) || "learn";
+
+    // ==========================
+    // DOM referansları
+    // ==========================
+    const card = document.getElementById("card");
+    const wordEnEl = document.getElementById("wordEn");
+    const wordTrEl = document.getElementById("wordTr");
+    const flipBtn = document.getElementById("flipBtn");
+    const flipBackBtn = document.getElementById("flipBackBtn");
+    const playBtn = document.getElementById("playBtn");
+    const masterBtn = document.getElementById("masterBtn");
+    const depotBtn = document.getElementById("depotBtn");
+    const prevBtn = document.getElementById("prevBtn");
+    const nextBtn = document.getElementById("nextBtn");
+    const progressBar = document.getElementById("progressBar");
+    const progressText = document.getElementById("progressText");
+    const settingsBtn = document.getElementById("settingsBtn");
+    const modal = document.getElementById("modal");
+    const backdrop = document.getElementById("backdrop");
+    const audioSwitch = document.getElementById("audioSwitch");
+    const resetBtn = document.getElementById("resetBtn");
+    const openDepotBtn = document.getElementById("openDepotBtn");
+    const closeModalBtn = document.getElementById("closeModalBtn");
+    const depotPanel = document.getElementById("depotPanel");
+    const depotList = document.getElementById("depotList");
+    const reviewDepotBtn = document.getElementById("reviewDepotBtn");
+    const clearDepotBtn = document.getElementById("clearDepotBtn");
+    const toggleModeBtn = document.getElementById("toggleModeBtn");
+    const modeLabel = document.getElementById("modeLabel");
+    const badgeCount = document.getElementById("badgeCount");
+
+    // ==========================
+    // Yardımcılar
+    // ==========================
+    function saveState(){
+        localStorage.setItem(LS_KEYS.idx, String(currentIndex));
+        localStorage.setItem(LS_KEYS.mastered, JSON.stringify([...masteredSet]));
+        localStorage.setItem(LS_KEYS.depot, JSON.stringify([...depotSet]));
+        localStorage.setItem(LS_KEYS.audio, audioOn ? "true" : "false");
+        localStorage.setItem(LS_KEYS.mode, mode);
+        updateProgress();
+        updateDepotUI();
+    }
+
+    function speak(text, lang="en-US"){
+        if(!audioOn) return;
+        if(!("speechSynthesis" in window)) return;
+        const utter = new SpeechSynthesisUtterance(text);
+        utter.lang = lang; utter.rate = 0.95; utter.pitch = 1.0;
+        const voices = window.speechSynthesis.getVoices();
+        const enVoice = voices.find(v => v.lang && v.lang.startsWith("en"));
+        if(enVoice) utter.voice = enVoice;
+        window.speechSynthesis.cancel();
+        window.speechSynthesis.speak(utter);
+    }
+
+    function clampIndex(idx){
+        const list = getActiveList();
+        if(list.length === 0) return 0;
+        if(idx < 0) return 0;
+        if(idx >= list.length) return list.length - 1;
+        return idx;
+    }
+
+    function getActiveList(){
+        if(mode === "depot"){
+            return WORDS.map((w,i)=>({...w,_i:i})).filter(item=>depotSet.has(item._i));
+        }else{
+            return WORDS.map((w,i)=>({...w,_i:i})).filter(item=>!masteredSet.has(item._i));
+        }
+    }
+
+    function nextItem(){
+        const list = getActiveList();
+        if(list.length === 0) return;
+        currentIndex = clampIndex(currentIndex + 1);
+        flipToFront();
+        render();
+        saveState();
+    }
+
+    function prevItem(){
+        const list = getActiveList();
+        if(list.length === 0) return;
+        currentIndex = clampIndex(currentIndex - 1);
+        flipToFront();
+        render();
+        saveState();
+    }
+
+    function updateProgress(){
+        const masteredCount = masteredSet.size;
+        const percent = Math.round((masteredCount / WORDS.length) * 100);
+        progressBar.style.width = percent + "%";
+        progressText.textContent = `${masteredCount} / ${WORDS.length}`;
+    }
+
+    function updateDepotUI(){
+        badgeCount.textContent = `Depo: ${depotSet.size}`;
+        depotList.innerHTML = "";
+        [...depotSet].forEach(i=>{
+            const w = WORDS[i];
+            const el = document.createElement("div");
+            el.className = "chip";
+            el.innerHTML = `<div class="en">${w.en}</div><div class="tr">${w.tr}</div>`;
+            depotList.appendChild(el);
+        });
+        depotPanel.hidden = false;
+    }
+
+    function flipToFront(){ card.classList.remove("flipped") }
+    function flipToBack(){ card.classList.add("flipped") }
+
+    function getCurrentWord(){
+        const list = getActiveList();
+        if(list.length === 0) return null;
+        const item = list[clampIndex(currentIndex)];
+        return item;
+    }
+
+    // ==========================
+    // Render
+    // ==========================
+    function render(){
+        const item = getCurrentWord();
+        if(!item){
+            wordEnEl.textContent = mode === "depot" ? "Depo boş" : "Tebrikler! Tüm kelimeleri işaretledin.";
+            wordTrEl.textContent = "";
+            masterBtn.disabled = true;
+            depotBtn.disabled = true;
+            return;
+        }
+        wordEnEl.textContent = item.en;
+        wordTrEl.textContent = item.tr;
+
+        const isMastered = masteredSet.has(item._i);
+        masterBtn.textContent = isMastered ? "✅ Öğrenildi" : "✅ Öğrendim";
+        masterBtn.disabled = isMastered && mode !== "depot";
+
+        const inDepot = depotSet.has(item._i);
+        depotBtn.textContent = inDepot ? "📦 Depoda" : "📦 Depoya ekle";
+
+        modeLabel.textContent = mode === "depot" ? "Depo modu" : "Öğrenme modu";
+    }
+
+    // ==========================
+    // Olaylar
+    // ==========================
+    flipBtn.addEventListener("click", flipToBack);
+    flipBackBtn.addEventListener("click", flipToFront);
+
+    playBtn.addEventListener("click", ()=>{
+        const item = getCurrentWord();
+        if(item) speak(item.en, "en-US");
+    });
+
+    masterBtn.addEventListener("click", ()=>{
+        const item = getCurrentWord();
+        if(!item) return;
+        masteredSet.add(item._i);
+        if(mode === "learn"){ nextItem() } else { render() }
+        saveState();
+    });
+
+    depotBtn.addEventListener("click", ()=>{
+        const item = getCurrentWord();
+        if(!item) return;
+        if(depotSet.has(item._i)){ depotSet.delete(item._i) } else { depotSet.add(item._i) }
+        updateDepotUI();
+        render();
+        saveState();
+    });
+
+    prevBtn.addEventListener("click", prevItem);
+    nextBtn.addEventListener("click", nextItem);
+
+    // Ayarlar modal
+    function openModal(){
+        backdrop.classList.add("show"); modal.classList.add("show"); audioSwitch.checked = audioOn;
+    }
+    function closeModal(){
+        backdrop.classList.remove("show"); modal.classList.remove("show");
+    }
+    document.getElementById("settingsBtn").addEventListener("click", openModal);
+    document.getElementById("closeModalBtn").addEventListener("click", closeModal);
+    backdrop.addEventListener("click", closeModal);
+
+    audioSwitch.addEventListener("change",(e)=>{ audioOn = e.target.checked; saveState() });
+
+    resetBtn.addEventListener("click", ()=>{
+        if(!confirm("Tüm ilerlemeyi ve depoyu sıfırlamak istiyor musun?")) return;
+        masteredSet = new Set();
+        depotSet = new Set();
+        currentIndex = 0;
+        mode = "learn";
+        flipToFront();
+        saveState();
+        render();
+        alert("Sıfırlandı.");
+    });
+
+    openDepotBtn.addEventListener("click", ()=>{
+        depotPanel.scrollIntoView({ behavior: "smooth", block: "center" });
+        closeModal();
+    });
+
+    reviewDepotBtn.addEventListener("click", ()=>{
+        if(depotSet.size === 0){
+            alert("Depo boş. Önce bazı kelimeleri depoya ekleyin.");
+            return;
+        }
+        mode = "depot"; currentIndex = 0; flipToFront(); render(); saveState();
+    });
+
+    clearDepotBtn.addEventListener("click", ()=>{
+        if(!confirm("Depodaki tüm kelimeleri kaldırmak istiyor musun?")) return;
+        depotSet = new Set();
+        updateDepotUI(); saveState(); render();
+    });
+
+    toggleModeBtn.addEventListener("click", ()=>{
+        mode = mode === "learn" ? "depot" : "learn";
+        currentIndex = 0; flipToFront(); render(); saveState();
+    });
+
+    if("speechSynthesis" in window){ window.speechSynthesis.onvoiceschanged = ()=>{} }
+
+    function ensureValidIndex(){
+        const list = getActiveList();
+        if(list.length === 0){ currentIndex = 0 } else { currentIndex = clampIndex(currentIndex) }
+    }
+    ensureValidIndex();
+    updateProgress();
+    updateDepotUI();
+    render();
+</script>
+</body>
+</html>
